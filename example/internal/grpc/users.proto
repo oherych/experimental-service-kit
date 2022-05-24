@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+option go_package = "./gen";
+
+import "google/protobuf/empty.proto";
+
+service Users {
+  rpc List (google.protobuf.Empty) returns (UserList) {}
+  rpc GetByID (GetByIDRequest) returns (User) {}
+}
+
+
+message GetByIDRequest {
+  required string id = 1;
+}
+
+message UserList {
+  repeated User users = 8;
+}
+
+message User {
+  required int32 id = 1;
+  required string username = 2;
+  required string email = 3;
+}

@@ -1,0 +1,13 @@
+version: "2.4" # Version 2 allows health checking outside of docker stack.
+
+services:
+  database:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: test
+
+
+
