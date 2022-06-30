@@ -1,7 +1,8 @@
 package responses
 
 type NotFound struct {
-	Reason string
+	Reason   string
+	Internal error
 }
 
 func (e NotFound) Error() string {

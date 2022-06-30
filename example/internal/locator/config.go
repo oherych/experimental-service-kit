@@ -16,3 +16,7 @@ type Config struct {
 func (c Config) GetBaseConfig() dependencies.BaseConfig {
 	return c.BaseConfig
 }
+
+func (c Config) Validate() error {
+	panic("implement me")
+}

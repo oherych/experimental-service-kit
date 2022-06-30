@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	grpc "github.com/oherych/experimental-service-kit/example/internal/grpc/gen"
+	grpc "github.com/oherych/experimental-service-kit/example/internal/grpc/generated"
 	"github.com/oherych/experimental-service-kit/example/internal/locator"
 	"github.com/oherych/experimental-service-kit/example/internal/repository"
 	"google.golang.org/grpc/codes"
@@ -11,8 +11,6 @@ import (
 )
 
 type Implementation struct {
-	grpc.UnimplementedUsersServer
-
 	d locator.Implementation
 }
 
@@ -30,7 +28,7 @@ func (cc Implementation) List(ctx context.Context, empty *emptypb.Empty) (*grpc.
 	return &grpc.UserList{Users: result}, nil
 }
 
-func (cc Implementation) GetByID(ctx context.Context, request *grpc.GetByIDRequest) (*grpc.User, error) {
+func (cc Implementation) Get(ctx context.Context, request *grpc.GetByIDRequest) (*grpc.User, error) {
 	user, err := cc.d.Users.GetByID(ctx, request.GetId())
 	if err == repository.ErrUserNotFound {
 		return nil, status.Error(codes.NotFound, "user found")
@@ -44,14 +42,8 @@ func (cc Implementation) GetByID(ctx context.Context, request *grpc.GetByIDReque
 
 func (cc Implementation) display(in repository.User) *grpc.User {
 	return &grpc.User{
-		Id:       toPointID(in.ID),
-		Username: &in.Username,
-		Email:    &in.Email,
+		Id:       int32(in.ID),
+		Username: in.Username,
+		Email:    in.Email,
 	}
-}
-
-// TODO: move me
-func toPointID(in int) *int32 {
-	val := int32(in)
-	return &val
 }

@@ -3,7 +3,8 @@ package dependencies
 import "context"
 
 type Locator interface {
-	HealthCheck(ctx context.Context) map[string]interface{}
+	HealthCheck(ctx context.Context) map[string]error
+	Ready(ctx context.Context) bool
 	Close() error
 }
 

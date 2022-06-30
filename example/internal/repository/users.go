@@ -33,7 +33,7 @@ func NewUsers(con *sql.DB) (Users, error) {
 		return Users{}, err
 	}
 
-	return Users{db: db}, nil
+	return Users{db: db.Unscoped()}, nil
 }
 
 // All return a list of Users
