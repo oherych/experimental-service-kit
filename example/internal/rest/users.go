@@ -4,14 +4,14 @@ import (
 	"github.com/oherych/experimental-service-kit/example/internal/locator"
 	"github.com/oherych/experimental-service-kit/example/internal/repository"
 	"github.com/oherych/experimental-service-kit/example/internal/rest/schemas"
-	"github.com/oherych/experimental-service-kit/kit/responses"
+	"github.com/oherych/experimental-service-kit/pkg/echo-listener"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 )
 
 type UsersController struct {
-	d locator.Implementation
+	d *locator.Container
 }
 
 func (cc UsersController) List(c echo.Context) error {
@@ -19,6 +19,7 @@ func (cc UsersController) List(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+
 
 	result := make([]schemas.User, len(users))
 	for i, item := range users {
@@ -33,13 +34,18 @@ func (cc UsersController) Get(c echo.Context) error {
 
 	user, err := cc.d.Users.GetByID(c.Request().Context(), id)
 	if err == repository.ErrUserNotFound {
-		return responses.NotFound{Reason: "user"}
+		return echo_listener.NotFound{Reason: "user"}
 	}
 	if err != nil {
 		return err
 	}
 
+
 	return c.JSON(http.StatusOK, cc.display(*user))
+}
+
+func (cc UsersController) Delete(c echo.Context) error {
+	panic("implement me")
 }
 
 func (cc UsersController) display(in repository.User) schemas.User {

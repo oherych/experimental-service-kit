@@ -1,24 +1,26 @@
-package kit
+package echo_listener
 
 import (
 	"context"
-	"net/http"
-
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/oherych/experimental-service-kit/kit/dependencies"
 	"github.com/oherych/experimental-service-kit/kit/logs"
 	"github.com/rs/zerolog"
+	"net/http"
 )
 
-type HttpEcho[Dep dependencies.Locator] struct {
+type HttpEcho[Conf dependencies.Config, Dep dependencies.Locator] struct {
 	Swagger      []byte
+	Init         func(conf Conf) Config
 	Builder      func(e *echo.Echo, dep Dep) error
 	ErrorHandler func(error, echo.Context) error
 }
 
-func (m HttpEcho[Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, bc dependencies.BaseConfig) error {
-	log.Info().Str("port", bc.HttpPort).Msg("[SYS] Starting REST server on port")
+func (m HttpEcho[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, global Conf) error {
+	config := m.Init(global)
+
+	log.Info().Str("port", config.HTTPPort).Msg("[SYS] Starting REST cmd on port")
 
 	r, err := m.create(dep, log)
 	if err != nil {
@@ -28,12 +30,12 @@ func (m HttpEcho[Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, 
 	go func() {
 		<-ctx.Done()
 
-		log.Info().Msg("[SYS] Stop REST server")
+		log.Info().Msg("[SYS] Stop REST cmd")
 
 		_ = r.Close()
 	}()
 
-	err = r.Start(bc.HttpPort)
+	err = r.Start(config.HTTPPort)
 	if err == http.ErrServerClosed {
 		return nil
 	}
@@ -41,7 +43,7 @@ func (m HttpEcho[Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, 
 	return err
 }
 
-func (m HttpEcho[Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error) {
+func (m HttpEcho[_, Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -87,7 +89,7 @@ func (m HttpEcho[Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error) {
 	return e, nil
 }
 
-func (m HttpEcho[Dep]) buildErrorHandler() echo.HTTPErrorHandler {
+func (m HttpEcho[_, _]) buildErrorHandler() echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
 		err = m.ErrorHandler(err, c)
 		c.Echo().DefaultHTTPErrorHandler(err, c)

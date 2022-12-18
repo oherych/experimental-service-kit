@@ -1,4 +1,4 @@
-package kit
+package grpc_listener
 
 import (
 	"context"
@@ -16,28 +16,31 @@ import (
 
 type Builder[Dep dependencies.Locator] func(dep Dep, sr grpc.ServiceRegistrar) error
 
-type GRPC[Dep dependencies.Locator] struct {
+type GRPC[Conf dependencies.Config, Dep dependencies.Locator] struct {
 	Swagger      []byte
+	Init         func(conf Conf) Config
 	Builder      func(sr grpc.ServiceRegistrar, dep Dep) error
 	HTTPHandlers []func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
 }
 
-func (m GRPC[Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, bc dependencies.BaseConfig) error {
+func (m GRPC[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, global Conf) error {
+	config := m.Init(global)
+
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		return m.buildGRPC(ctx, log, dep, bc)
+		return m.buildGRPC(ctx, log, dep, config)
 	})
 
 	g.Go(func() error {
-		return m.buildHTP(ctx, log, dep, bc)
+		return m.buildHTP(ctx, log, dep, config)
 	})
 
 	return g.Wait()
 }
 
-func (m GRPC[Dep]) buildGRPC(ctx context.Context, log zerolog.Logger, dep Dep, bc dependencies.BaseConfig) error {
-	log.Info().Str("port", bc.GRPCPort).Msg("[SYS] Starting gRPC server on port")
+func (m GRPC[Conf, Dep]) buildGRPC(ctx context.Context, log zerolog.Logger, dep Dep, bc Config) error {
+	log.Info().Str("port", bc.GRPCPort).Msg("[SYS] Starting gRPC cmd on port")
 
 	s := m.newServer(ctx, log)
 
@@ -53,12 +56,12 @@ func (m GRPC[Dep]) buildGRPC(ctx context.Context, log zerolog.Logger, dep Dep, b
 	return s.Serve(lis)
 }
 
-func (m GRPC[Dep]) buildHTP(ctx context.Context, log zerolog.Logger, dep Dep, bc dependencies.BaseConfig) error {
+func (m GRPC[Conf, Dep]) buildHTP(ctx context.Context, log zerolog.Logger, dep Dep, bc Config) error {
 	if m.HTTPHandlers == nil {
 		return nil
 	}
 
-	log.Info().Str("port", bc.HTTPPort).Msg("[SYS] Starting HTTP server on port")
+	log.Info().Str("port", bc.HTTPPort).Msg("[SYS] Starting HTTP cmd on port")
 
 	mux := runtime.NewServeMux()
 
@@ -79,7 +82,7 @@ func (m GRPC[Dep]) buildHTP(ctx context.Context, log zerolog.Logger, dep Dep, bc
 	go func() {
 		<-ctx.Done()
 
-		log.Info().Msg("[SYS] Stop gRPC server")
+		log.Info().Msg("[SYS] Stop gRPC cmd")
 
 		_ = s.Close()
 	}()
@@ -87,7 +90,7 @@ func (m GRPC[Dep]) buildHTP(ctx context.Context, log zerolog.Logger, dep Dep, bc
 	return s.ListenAndServe()
 }
 
-func (m GRPC[Dep]) newServer(ctx context.Context, log zerolog.Logger) *grpc.Server {
+func (m GRPC[Conf, Dep]) newServer(ctx context.Context, log zerolog.Logger) *grpc.Server {
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_recovery.UnaryServerInterceptor(),
@@ -97,7 +100,7 @@ func (m GRPC[Dep]) newServer(ctx context.Context, log zerolog.Logger) *grpc.Serv
 	go func() {
 		<-ctx.Done()
 
-		log.Info().Msg("[SYS] Stop gRPC server")
+		log.Info().Msg("[SYS] Stop gRPC cmd")
 
 		s.GracefulStop()
 	}()

@@ -1,4 +1,4 @@
-package responses
+package echo_listener
 
 type NotFound struct {
 	Reason   string

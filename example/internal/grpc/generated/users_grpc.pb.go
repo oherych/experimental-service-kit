@@ -25,6 +25,7 @@ const _ = grpc.SupportPackageIsVersion7
 type UsersServiceClient interface {
 	List(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*UserList, error)
 	Get(ctx context.Context, in *GetByIDRequest, opts ...grpc.CallOption) (*User, error)
+	Delete(ctx context.Context, in *GetByIDRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type usersServiceClient struct {
@@ -53,12 +54,22 @@ func (c *usersServiceClient) Get(ctx context.Context, in *GetByIDRequest, opts .
 	return out, nil
 }
 
-// UsersServiceServer is the server API for UsersService service.
+func (c *usersServiceClient) Delete(ctx context.Context, in *GetByIDRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.users.v1.UsersService/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UsersServiceServer is the cmd API for UsersService service.
 // All implementations should embed UnimplementedUsersServiceServer
 // for forward compatibility
 type UsersServiceServer interface {
 	List(context.Context, *emptypb.Empty) (*UserList, error)
 	Get(context.Context, *GetByIDRequest) (*User, error)
+	Delete(context.Context, *GetByIDRequest) (*emptypb.Empty, error)
 }
 
 // UnimplementedUsersServiceServer should be embedded to have forward compatible implementations.
@@ -70,6 +81,9 @@ func (UnimplementedUsersServiceServer) List(context.Context, *emptypb.Empty) (*U
 }
 func (UnimplementedUsersServiceServer) Get(context.Context, *GetByIDRequest) (*User, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedUsersServiceServer) Delete(context.Context, *GetByIDRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 
 // UnsafeUsersServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -119,6 +133,24 @@ func _UsersService_Get_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UsersService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UsersServiceServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.users.v1.UsersService/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UsersServiceServer).Delete(ctx, req.(*GetByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UsersService_ServiceDesc is the grpc.ServiceDesc for UsersService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -133,6 +165,10 @@ var UsersService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Get",
 			Handler:    _UsersService_Get_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _UsersService_Delete_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -24,6 +24,11 @@ service UsersService {
       get: "/v1/user/{id}"
     };
   }
+  rpc Delete(GetByIDRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/user/{id}"
+    };
+  }
 }
 
 

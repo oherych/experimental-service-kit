@@ -55,3 +55,7 @@ func (r Users) GetByID(ctx context.Context, id string) (*User, error) {
 
 	return &target, nil
 }
+
+func (r Users) Delete(ctx context.Context, id string) error {
+	panic("implement me")
+}

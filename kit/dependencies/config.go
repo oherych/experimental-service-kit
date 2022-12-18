@@ -1,13 +1,23 @@
 package dependencies
 
 type Config interface {
-	GetBaseConfig() BaseConfig
+	GetBaseConfig() Base
+	Validate() error
 }
 
-type BaseConfig struct {
-	AppName  string
-	Debug    bool
-	HttpPort string `default:":8000"`
-	GRPCPort string `default:":50051"`
-	HTTPPort string `default:":8080"`
+type ConfigSetter interface {
+	SetBaseConfig(in Base)
+}
+
+type Base struct {
+	AppName  string `ignored:"true"`
+	LogLevel string `envconfig:"LOG_LEVEL" default:"info" desc:"Log level"`
+}
+
+func (bc Base) GetBaseConfig() Base {
+	return bc
+}
+
+func (bc *Base) SetBaseConfig(in Base) {
+	*bc = in
 }

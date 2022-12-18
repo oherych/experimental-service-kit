@@ -2,21 +2,23 @@ package locator
 
 import (
 	"github.com/oherych/experimental-service-kit/kit/dependencies"
-	"github.com/oherych/experimental-service-kit/kit/postgres"
+	echo_listener "github.com/oherych/experimental-service-kit/pkg/echo-listener"
+	"github.com/oherych/experimental-service-kit/pkg/postgres"
 )
 
 type Config struct {
-	dependencies.BaseConfig
+	dependencies.Base
 
-	Postgres postgres.Config `mapstructure:",squash"`
+	// Listeners
+	Echo echo_listener.Config
 
+	// Dependencies
+	Postgres postgres.Config
+
+	// Custom configuration
 	MyArg string `env:"MYARG"`
 }
 
-func (c Config) GetBaseConfig() dependencies.BaseConfig {
-	return c.BaseConfig
-}
-
 func (c Config) Validate() error {
-	panic("implement me")
+	return nil
 }
