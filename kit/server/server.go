@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -36,7 +37,7 @@ type Config[Conf dependencies.Config, Dep dependencies.Locator] struct {
 	Log zerolog.Logger
 }
 
-func (cmd Config[_, _]) New() error {
+func (cmd Config[_, _]) New(ctx context.Context) error {
 	app := &cli.App{
 		Name:                 path.Base(cmd.Args[0]),
 		Description:          cmd.mainDescription(),
@@ -52,7 +53,7 @@ func (cmd Config[_, _]) New() error {
 		},
 	}
 
-	return app.Run(cmd.Args)
+	return app.RunContext(ctx, cmd.Args)
 }
 
 func (cmd Config[_, _]) mainDescription() string {
@@ -60,10 +61,12 @@ func (cmd Config[_, _]) mainDescription() string {
 	sb.WriteString(fmt.Sprintf("%s - server\n\n", cmd.Name))
 
 	sb.WriteString("Listeners:\n")
-	for _, l := range cmd.Listeners {
+	for _, l := range cmd.getListeners() {
 		listenerType := reflect.TypeOf(l)
 
-		sb.WriteString(fmt.Sprintf("  * %s\n", listenerType.Name()))
+		before, _, _ := strings.Cut(listenerType.Name(), "[")
+
+		sb.WriteString(fmt.Sprintf("  * %s\n", listenerType.PkgPath()+"/"+before))
 	}
 
 	return sb.String()
@@ -112,7 +115,7 @@ func (cmd Config[_, _]) cmdConfig() *cli.Command {
 	}
 }
 
-func (cmd Config[Conf, _]) cmdRun() *cli.Command {
+func (cmd Config[Conf, Dep]) cmdRun() *cli.Command {
 	flags := []cli.Flag{
 		&cli.IntFlag{Name: "http.port", Value: 8080, EnvVars: []string{"HTTP_PORT"}},
 	}
@@ -140,11 +143,13 @@ func (cmd Config[Conf, _]) cmdRun() *cli.Command {
 				if err := dep.Close(); err != nil {
 					cmd.Log.Error().Err(err).Send()
 				}
+
+				cmd.Log.Info().Msg("[SYS] Done")
 			}()
 
 			g, ctx := errgroup.WithContext(c.Context)
 
-			for _, port := range cmd.Listeners {
+			for _, port := range cmd.getListeners() {
 				fn := port.Server
 
 				g.Go(func() error { return fn(ctx, cmd.Log, dep, conf) })
@@ -172,4 +177,8 @@ func (cmd Config[Conf, _]) readConfiguration(c *cli.Context) (Conf, error) {
 	}
 
 	return *cnf, nil
+}
+
+func (cmd Config[Conf, Dep]) getListeners() []Listener[Conf, Dep] {
+	return append(cmd.Listeners, Monitoring[Conf, Dep]{})
 }

@@ -2,49 +2,58 @@ package rest
 
 import (
 	"github.com/oherych/experimental-service-kit/example/internal/locator"
+	"github.com/oherych/experimental-service-kit/example/internal/permissions"
 	"github.com/oherych/experimental-service-kit/example/internal/repository"
 	"github.com/oherych/experimental-service-kit/example/internal/rest/schemas"
-	"github.com/oherych/experimental-service-kit/pkg/echo-listener"
-	"net/http"
-
-	"github.com/labstack/echo/v4"
+	listener "github.com/oherych/experimental-service-kit/pkg/echo-listener"
 )
 
 type UsersController struct {
 	d *locator.Container
 }
 
-func (cc UsersController) List(c echo.Context) error {
-	users, err := cc.d.Users.All(c.Request().Context())
+func (cc UsersController) List(c listener.Context) error {
+	if err := c.ShouldCan(permissions.UserList); err != nil {
+		return err
+	}
+
+	pagination, err := c.Pagination(100)
 	if err != nil {
 		return err
 	}
 
+	users, err := cc.d.Users.All(c.Context(), pagination)
+	if err != nil {
+		return err
+	}
 
 	result := make([]schemas.User, len(users))
 	for i, item := range users {
 		result[i] = cc.display(item)
 	}
 
-	return c.JSON(http.StatusOK, result)
+	return c.List(pagination, result)
 }
 
-func (cc UsersController) Get(c echo.Context) error {
-	id := c.Param("id")
+func (cc UsersController) Get(c listener.Context) error {
+	if err := c.ShouldCan(permissions.UserGet); err != nil {
+		return err
+	}
 
-	user, err := cc.d.Users.GetByID(c.Request().Context(), id)
+	id := c.ParamString("id")
+
+	user, err := cc.d.Users.GetByID(c.Context(), id)
 	if err == repository.ErrUserNotFound {
-		return echo_listener.NotFound{Reason: "user"}
+		return listener.NotFound{Reason: "user"}
 	}
 	if err != nil {
 		return err
 	}
 
-
-	return c.JSON(http.StatusOK, cc.display(*user))
+	return c.StatusOK(cc.display(*user))
 }
 
-func (cc UsersController) Delete(c echo.Context) error {
+func (cc UsersController) Delete(c listener.Context) error {
 	panic("implement me")
 }
 

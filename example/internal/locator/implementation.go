@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"github.com/oherych/experimental-service-kit/example/internal/migrations"
 	"github.com/oherych/experimental-service-kit/example/internal/repository"
+	"github.com/oherych/experimental-service-kit/kit"
 	"github.com/oherych/experimental-service-kit/pkg/postgres"
 )
 
 type Users interface {
-	All(ctx context.Context) ([]repository.User, error)
+	All(ctx context.Context, pagination kit.Pagination) ([]repository.User, error)
 	GetByID(ctx context.Context, id string) (*repository.User, error)
 	Delete(ctx context.Context, id string) error
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/oherych/experimental-service-kit/kit"
 
 	"gorm.io/gorm/logger"
 
@@ -37,7 +38,7 @@ func NewUsers(con *sql.DB) (Users, error) {
 }
 
 // All return a list of Users
-func (r Users) All(ctx context.Context) ([]User, error) {
+func (r Users) All(ctx context.Context, pagination kit.Pagination) ([]User, error) {
 	var target []User
 	result := r.db.WithContext(ctx).Find(&target)
 

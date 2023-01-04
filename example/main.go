@@ -8,7 +8,9 @@ import (
 
 func main() {
 	kit.Server("DEMO", locator.Constructor).
-		WithListeners(rest.Router).
-		//WithListeners(grpc.Router).
+		WithListeners(rest.New()).
+		// WithListeners(grpc.Router).
 		Run()
 }
+
+

@@ -11,16 +11,15 @@ import (
 )
 
 type HttpEcho[Conf dependencies.Config, Dep dependencies.Locator] struct {
-	Swagger      []byte
-	Init         func(conf Conf) Config
-	Builder      func(e *echo.Echo, dep Dep) error
-	ErrorHandler func(error, echo.Context) error
+	Swagger    []byte
+	InitConfig func(conf Conf) Config
+	Builder    func(e *echo.Echo, dep Dep) error
 }
 
 func (m HttpEcho[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, global Conf) error {
-	config := m.Init(global)
+	config := m.InitConfig(global)
 
-	log.Info().Str("port", config.HTTPPort).Msg("[SYS] Starting REST cmd on port")
+	log.Info().Str("port", config.HTTPPort).Msg("[SYS] Starting REST")
 
 	r, err := m.create(dep, log)
 	if err != nil {
@@ -30,7 +29,7 @@ func (m HttpEcho[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep
 	go func() {
 		<-ctx.Done()
 
-		log.Info().Msg("[SYS] Stop REST cmd")
+		log.Info().Msg("[SYS] Stop REST")
 
 		_ = r.Close()
 	}()
@@ -47,10 +46,7 @@ func (m HttpEcho[_, Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
-
-	if m.ErrorHandler != nil {
-		e.HTTPErrorHandler = m.buildErrorHandler()
-	}
+	e.HTTPErrorHandler = m.buildErrorHandler()
 
 	e.Pre(middleware.AddTrailingSlash())
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -63,22 +59,11 @@ func (m HttpEcho[_, Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error
 		}
 	})
 	e.Use(middleware.Recover())
-	e.Use(middleware.Logger())
+	e.Use(loggerMiddleware(log))
 
 	if err := m.Builder(e, dep); err != nil {
 		return nil, err
 	}
-
-	e.GET("_health/", func(c echo.Context) error {
-		result := dep.HealthCheck(c.Request().Context())
-		for _, err := range result {
-			if err != nil {
-				return c.JSON(http.StatusGatewayTimeout, result)
-			}
-		}
-
-		return c.JSON(http.StatusOK, result)
-	})
 
 	if len(m.Swagger) > 0 {
 		e.GET("_swagger.yaml/", func(c echo.Context) error {
@@ -91,7 +76,16 @@ func (m HttpEcho[_, Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error
 
 func (m HttpEcho[_, _]) buildErrorHandler() echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
-		err = m.ErrorHandler(err, c)
+		err = m.errorHandling(err, c)
 		c.Echo().DefaultHTTPErrorHandler(err, c)
 	}
+}
+
+func (m HttpEcho[_, _]) errorHandling(err error, c echo.Context) error {
+	switch e := err.(type) {
+	case NotFound:
+		return c.JSON(http.StatusNotFound, map[string]any{"reason": e.Reason})
+	}
+
+	return err
 }

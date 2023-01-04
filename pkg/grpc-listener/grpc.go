@@ -40,7 +40,7 @@ func (m GRPC[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep
 }
 
 func (m GRPC[Conf, Dep]) buildGRPC(ctx context.Context, log zerolog.Logger, dep Dep, bc Config) error {
-	log.Info().Str("port", bc.GRPCPort).Msg("[SYS] Starting gRPC cmd on port")
+	log.Info().Str("port", bc.GRPCPort).Msg("[SYS] Starting gRPC cmd")
 
 	s := m.newServer(ctx, log)
 
@@ -61,7 +61,7 @@ func (m GRPC[Conf, Dep]) buildHTP(ctx context.Context, log zerolog.Logger, dep D
 		return nil
 	}
 
-	log.Info().Str("port", bc.HTTPPort).Msg("[SYS] Starting HTTP cmd on port")
+	log.Info().Str("port", bc.HTTPPort).Msg("[SYS] Starting HTTP cmd")
 
 	mux := runtime.NewServeMux()
 

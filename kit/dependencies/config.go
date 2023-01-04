@@ -10,8 +10,9 @@ type ConfigSetter interface {
 }
 
 type Base struct {
-	AppName  string `ignored:"true"`
-	LogLevel string `envconfig:"LOG_LEVEL" default:"info" desc:"Log level"`
+	AppName      string `ignored:"true"`
+	LogLevel     string `envconfig:"LOG_LEVEL" default:"info" desc:"Log level"`
+	InternalPort string `envconfig:"INTERNAL_PORT" default:":7001" desc:"Internal port"`
 }
 
 func (bc Base) GetBaseConfig() Base {

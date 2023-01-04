@@ -6,6 +6,7 @@ import (
 	"github.com/oherych/experimental-service-kit/kit/dependencies"
 	"github.com/oherych/experimental-service-kit/kit/logs"
 	"github.com/oherych/experimental-service-kit/kit/server"
+	"net/http"
 	"os"
 	"os/signal"
 )
@@ -32,11 +33,11 @@ func (a *ServerRunner[Conf, Dep]) WithListeners(port server.Listener[Conf, Dep])
 }
 
 func (a *ServerRunner[Conf, Dep]) Run() {
-	//ctx := a.contextWithInterrupt()
+	ctx := a.contextWithInterrupt()
 
 	a.server.Args = os.Args
 
-	if err := a.server.New(); err != nil {
+	if err := a.server.New(ctx); err != nil && err != http.ErrServerClosed {
 		fmt.Println(err)
 		os.Exit(1)
 	}

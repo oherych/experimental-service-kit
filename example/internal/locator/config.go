@@ -10,7 +10,7 @@ type Config struct {
 	dependencies.Base
 
 	// Listeners
-	Echo echo_listener.Config
+	Echo echo_listener.Config `envconfig:"ROUTER"`
 
 	// Dependencies
 	Postgres postgres.Config
@@ -22,3 +22,4 @@ type Config struct {
 func (c Config) Validate() error {
 	return nil
 }
+
