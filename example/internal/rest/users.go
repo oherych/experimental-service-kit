@@ -5,6 +5,8 @@ import (
 	"github.com/oherych/experimental-service-kit/example/internal/permissions"
 	"github.com/oherych/experimental-service-kit/example/internal/repository"
 	"github.com/oherych/experimental-service-kit/example/internal/rest/schemas"
+	"github.com/oherych/experimental-service-kit/kit"
+	"github.com/oherych/experimental-service-kit/kit/logs"
 	listener "github.com/oherych/experimental-service-kit/pkg/echo-listener"
 )
 
@@ -40,11 +42,14 @@ func (cc UsersController) Get(c listener.Context) error {
 		return err
 	}
 
-	id := c.ParamString("id")
+	id, err := c.ParamInt("id")
+	if err != nil {
+		return err
+	}
 
 	user, err := cc.d.Users.GetByID(c.Context(), id)
 	if err == repository.ErrUserNotFound {
-		return listener.NotFound{Reason: "user"}
+		return kit.NotFound{Reason: "user"}
 	}
 	if err != nil {
 		return err
@@ -54,7 +59,26 @@ func (cc UsersController) Get(c listener.Context) error {
 }
 
 func (cc UsersController) Delete(c listener.Context) error {
-	panic("implement me")
+	if err := c.ShouldCan(permissions.UserDelete); err != nil {
+		return err
+	}
+
+	id, err := c.ParamInt("id")
+	if err != nil {
+		return err
+	}
+
+	err = cc.d.Users.Delete(c.Context(), id)
+	if err == repository.ErrUserNotFound {
+		return kit.NotFound{Reason: "user"}
+	}
+	if err != nil {
+		return err
+	}
+
+	logs.For(c.Context()).Log().Int("user_id", id).Msg("user deleted")
+
+	return c.Deleted()
 }
 
 func (cc UsersController) display(in repository.User) schemas.User {

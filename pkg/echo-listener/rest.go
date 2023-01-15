@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/oherych/experimental-service-kit/kit"
 	"github.com/oherych/experimental-service-kit/kit/dependencies"
 	"github.com/oherych/experimental-service-kit/kit/logs"
 	"github.com/rs/zerolog"
@@ -16,7 +17,7 @@ type HttpEcho[Conf dependencies.Config, Dep dependencies.Locator] struct {
 	Builder    func(e *echo.Echo, dep Dep) error
 }
 
-func (m HttpEcho[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, global Conf) error {
+func (m HttpEcho[Conf, Dep]) Server(ctx context.Context, log *zerolog.Logger, dep Dep, global Conf) error {
 	config := m.InitConfig(global)
 
 	log.Info().Str("port", config.HTTPPort).Msg("[SYS] Starting REST")
@@ -42,7 +43,7 @@ func (m HttpEcho[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep
 	return err
 }
 
-func (m HttpEcho[_, Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error) {
+func (m HttpEcho[_, Dep]) create(dep Dep, log *zerolog.Logger) (*echo.Echo, error) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -52,13 +53,14 @@ func (m HttpEcho[_, Dep]) create(dep Dep, log zerolog.Logger) (*echo.Echo, error
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			request := c.Request()
-			request = request.WithContext(logs.ToContext(request.Context(), &log))
+			request = request.WithContext(logs.ToContext(request.Context(), log))
 			c.SetRequest(request)
 
 			return next(c)
 		}
 	})
 	e.Use(middleware.Recover())
+	e.Use(traceIDMiddleware())
 	e.Use(loggerMiddleware(log))
 
 	if err := m.Builder(e, dep); err != nil {
@@ -83,8 +85,10 @@ func (m HttpEcho[_, _]) buildErrorHandler() echo.HTTPErrorHandler {
 
 func (m HttpEcho[_, _]) errorHandling(err error, c echo.Context) error {
 	switch e := err.(type) {
-	case NotFound:
+	case kit.NotFound:
 		return c.JSON(http.StatusNotFound, map[string]any{"reason": e.Reason})
+	case kit.WrongParameter:
+		return c.JSON(http.StatusBadRequest, map[string]any{"name": e.Name})
 	}
 
 	return err

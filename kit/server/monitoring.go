@@ -11,7 +11,7 @@ import (
 
 type Monitoring[Conf dependencies.Config, Dep dependencies.Locator] struct{}
 
-func (m Monitoring[Conf, Dep]) Server(ctx context.Context, log zerolog.Logger, dep Dep, conf Conf) error {
+func (m Monitoring[Conf, Dep]) Server(ctx context.Context, log *zerolog.Logger, dep Dep, conf Conf) error {
 	bc := conf.GetBaseConfig()
 
 	r := echo.New()

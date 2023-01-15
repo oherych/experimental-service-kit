@@ -7,5 +7,5 @@ import (
 )
 
 type Listener[Conf dependencies.Config, Dep dependencies.Locator] interface {
-	Server(ctx context.Context, log zerolog.Logger, dep Dep, conf Conf) error
+	Server(ctx context.Context, log *zerolog.Logger, dep Dep, conf Conf) error
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/oherych/experimental-service-kit/kit/dependencies"
-	"github.com/oherych/experimental-service-kit/kit/logs"
 	"github.com/oherych/experimental-service-kit/kit/server"
 	"net/http"
 	"os"
@@ -20,7 +19,6 @@ func Server[Conf dependencies.Config, Dep dependencies.Locator](name string, deb
 		server: &server.Config[Conf, Dep]{
 			Name:       name,
 			DebBuilder: debBuilder,
-			Log:        logs.New(os.Stdout),
 		},
 	}
 

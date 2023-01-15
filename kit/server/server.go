@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/oherych/experimental-service-kit/kit/logs"
 	"os"
 	"path"
 	"reflect"
@@ -22,6 +23,7 @@ import (
 
 const (
 	configFlag = "config"
+	formatFlag = "format"
 )
 
 const (
@@ -33,8 +35,6 @@ type Config[Conf dependencies.Config, Dep dependencies.Locator] struct {
 	Args       []string
 	DebBuilder dependencies.Builder[Conf, Dep]
 	Listeners  []Listener[Conf, Dep]
-
-	Log zerolog.Logger
 }
 
 func (cmd Config[_, _]) New(ctx context.Context) error {
@@ -44,6 +44,18 @@ func (cmd Config[_, _]) New(ctx context.Context) error {
 		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: configFlag, Aliases: []string{"c"}, Value: ".env"},
+			&cli.StringFlag{Name: formatFlag, Aliases: []string{}, Value: "json", Destination: pointerString("[human,json]")},
+		},
+		Before: func(c *cli.Context) error {
+			log := logs.New(os.Stdout)
+
+			if c.String(formatFlag) == "human" {
+				log = log.Output(zerolog.ConsoleWriter{TimeFormat: "15:04:05", Out: os.Stderr})
+			}
+
+			c.Context = logs.ToContext(c.Context, &log)
+
+			return nil
 		},
 		Commands: []*cli.Command{
 			cmd.cmdRun(),
@@ -132,19 +144,20 @@ func (cmd Config[Conf, Dep]) cmdRun() *cli.Command {
 
 			dep, err := cmd.DebBuilder(conf)
 			if err != nil {
-				cmd.Log.Error().Err(err).Send()
+
+				logs.For(c.Context).Error().Err(err).Send()
 
 				return err
 			}
 
 			defer func() {
-				cmd.Log.Info().Msg("[SYS] Destroy dependencies")
+				logs.For(c.Context).Info().Msg("[SYS] Destroy dependencies")
 
 				if err := dep.Close(); err != nil {
-					cmd.Log.Error().Err(err).Send()
+					logs.For(c.Context).Error().Err(err).Send()
 				}
 
-				cmd.Log.Info().Msg("[SYS] Done")
+				logs.For(c.Context).Info().Msg("[SYS] Done")
 			}()
 
 			g, ctx := errgroup.WithContext(c.Context)
@@ -152,7 +165,7 @@ func (cmd Config[Conf, Dep]) cmdRun() *cli.Command {
 			for _, port := range cmd.getListeners() {
 				fn := port.Server
 
-				g.Go(func() error { return fn(ctx, cmd.Log, dep, conf) })
+				g.Go(func() error { return fn(ctx, logs.For(c.Context), dep, conf) })
 			}
 
 			return g.Wait()
@@ -181,4 +194,8 @@ func (cmd Config[Conf, _]) readConfiguration(c *cli.Context) (Conf, error) {
 
 func (cmd Config[Conf, Dep]) getListeners() []Listener[Conf, Dep] {
 	return append(cmd.Listeners, Monitoring[Conf, Dep]{})
+}
+
+func pointerString(in string) *string {
+	return &in
 }

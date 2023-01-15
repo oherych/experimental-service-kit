@@ -11,8 +11,8 @@ import (
 
 type Users interface {
 	All(ctx context.Context, pagination kit.Pagination) ([]repository.User, error)
-	GetByID(ctx context.Context, id string) (*repository.User, error)
-	Delete(ctx context.Context, id string) error
+	GetByID(ctx context.Context, id int) (*repository.User, error)
+	Delete(ctx context.Context, id int) error
 }
 
 type Container struct {

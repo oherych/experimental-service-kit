@@ -3,10 +3,10 @@ package grpc
 import (
 	"context"
 	_ "embed"
+	generated "github.com/oherych/experimental-service-kit/example/internal/grpc/proto/business_domain/v1"
 	"github.com/oherych/experimental-service-kit/pkg/grpc-listener"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/oherych/experimental-service-kit/example/internal/grpc/generated"
 	"github.com/oherych/experimental-service-kit/example/internal/locator"
 	"google.golang.org/grpc"
 )

@@ -47,7 +47,7 @@ func (r Users) All(ctx context.Context, pagination kit.Pagination) ([]User, erro
 
 // GetByID return user by ID
 // If user not found method will return ErrUserNotFound
-func (r Users) GetByID(ctx context.Context, id string) (*User, error) {
+func (r Users) GetByID(ctx context.Context, id int) (*User, error) {
 	var target User
 	result := r.db.WithContext(ctx).Where("id = ?", id).First(&target)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -57,6 +57,6 @@ func (r Users) GetByID(ctx context.Context, id string) (*User, error) {
 	return &target, nil
 }
 
-func (r Users) Delete(ctx context.Context, id string) error {
+func (r Users) Delete(ctx context.Context, id int) error {
 	panic("implement me")
 }

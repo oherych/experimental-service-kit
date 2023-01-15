@@ -2,9 +2,10 @@ package grpc
 
 import (
 	"context"
-	"github.com/oherych/experimental-service-kit/example/internal/grpc/generated"
+	generated "github.com/oherych/experimental-service-kit/example/internal/grpc/proto/business_domain/v1"
 	"github.com/oherych/experimental-service-kit/example/internal/locator"
 	"github.com/oherych/experimental-service-kit/example/internal/repository"
+	"github.com/oherych/experimental-service-kit/kit"
 	"github.com/oherych/experimental-service-kit/kit/logs"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,7 +17,7 @@ type Implementation struct {
 }
 
 func (cc Implementation) List(ctx context.Context, empty *emptypb.Empty) (*generated.UserList, error) {
-	users, err := cc.d.Users.All(ctx)
+	users, err := cc.d.Users.All(ctx, kit.Pagination{})
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +31,7 @@ func (cc Implementation) List(ctx context.Context, empty *emptypb.Empty) (*gener
 }
 
 func (cc Implementation) Get(ctx context.Context, request *generated.GetByIDRequest) (*generated.User, error) {
-	user, err := cc.d.Users.GetByID(ctx, request.GetId())
+	user, err := cc.d.Users.GetByID(ctx, int(request.GetId()))
 	if err == repository.ErrUserNotFound {
 		return nil, status.Error(codes.NotFound, "user found")
 	}
@@ -42,7 +43,7 @@ func (cc Implementation) Get(ctx context.Context, request *generated.GetByIDRequ
 }
 
 func (cc Implementation) Delete(ctx context.Context, request *generated.GetByIDRequest) (*emptypb.Empty, error) {
-	err := cc.d.Users.Delete(ctx, request.Id)
+	err := cc.d.Users.Delete(ctx, int(request.GetId()))
 	if err == repository.ErrUserNotFound {
 		return nil, status.Error(codes.NotFound, "user found")
 	}
@@ -50,14 +51,14 @@ func (cc Implementation) Delete(ctx context.Context, request *generated.GetByIDR
 		return nil, err
 	}
 
-	logs.For(ctx).Log().Str("user_id", request.Id).Msg("user deleted")
+	logs.For(ctx).Log().Int64("user_id", request.GetId()).Msg("user deleted")
 
 	return &emptypb.Empty{}, nil
 }
 
 func (cc Implementation) display(in repository.User) *generated.User {
 	return &generated.User{
-		Id:       int32(in.ID),
+		Id:       int64(in.ID),
 		Username: in.Username,
 		Email:    in.Email,
 	}
