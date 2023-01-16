@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	generated "github.com/oherych/experimental-service-kit/example/internal/grpc/proto/business_domain/v1"
+	"github.com/oherych/experimental-service-kit/example/internal/grpc/generated"
 	"github.com/oherych/experimental-service-kit/example/internal/locator"
 	"github.com/oherych/experimental-service-kit/example/internal/repository"
 	"github.com/oherych/experimental-service-kit/kit"
@@ -13,6 +13,8 @@ import (
 )
 
 type Implementation struct {
+	generated.UnimplementedUsersServiceServer
+
 	d *locator.Container
 }
 

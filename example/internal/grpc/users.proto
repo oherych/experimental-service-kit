@@ -14,7 +14,6 @@ service UsersService {
   rpc Delete(GetByIDRequest) returns (google.protobuf.Empty) {}
 }
 
-
 message GetByIDRequest {
   int64 id = 1;
 }

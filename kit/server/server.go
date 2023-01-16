@@ -23,7 +23,7 @@ import (
 
 const (
 	configFlag = "config"
-	formatFlag = "format"
+	formatFlag = "log.format"
 )
 
 const (
